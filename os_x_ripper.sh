@@ -5,7 +5,7 @@
 # 2.1 - added possibility to limit number of containers (for less powerful machines like 13in mbp pre M1)
 
 VERSION='2.1'
-TARGETS_URL='https://raw.githubusercontent.com/ValeryP/help-ukraine-win/main/web-ddos/public/targets.txt'
+TARGETS_URL='https://raw.githubusercontent.com/nitupkcuf/ripper-wrapper/main/targets.json'
 INTERVAL='600' # in seconds
 
 function print_help {
