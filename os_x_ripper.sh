@@ -109,12 +109,10 @@ while test -n "$1"; do
   shift
 done
 
+curl --silent $TARGETS_URL --output targets.txt
 
 check_dependencies
 check_params
-
-curl --silent $TARGETS_URL --output targets.txt
-TARGETS_SHA="$(cat targets.txt|shasum)"
 
 
 case $mode in
